@@ -29,6 +29,16 @@ impl fmt::Display for ParserError {
 
 pub type ParseResult = Result<(String, ParsedObject), ParserError>;
 
+pub fn parse_whitespace() -> impl Fn(String) -> ParseResult {
+    move |source: String| {
+        let space = parse_char(' ');
+        let tab = parse_char('\t');
+        let new_line = parse_char('\n');
+        let whitespace = any_of(vec![space, tab, new_line]);
+        whitespace(source)
+    }
+}
+
 pub fn any_of(parsers: Vec<impl Fn(String) -> ParseResult>) -> impl Fn(String) -> ParseResult {
     move |source: String| {
         for parser in &parsers {
@@ -38,7 +48,7 @@ pub fn any_of(parsers: Vec<impl Fn(String) -> ParseResult>) -> impl Fn(String) -
             }
         }
         Err(ParserError::Unknown(
-            "could not parse anything from 'any_of'".to_string(),
+            "could not parse anything from <any_of>".to_string(),
         ))
     }
 }
