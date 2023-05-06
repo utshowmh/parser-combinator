@@ -62,3 +62,21 @@ fn test_parse_whitespace() {
     let result = parser("".to_string());
     assert!(result.is_err());
 }
+
+#[test]
+fn test_parse_whitespaces() {
+    use crate::{parse_whitespaces, ParsedObject};
+
+    let parser = parse_whitespaces();
+    let result = parser(" \t\n ok".to_string()).unwrap();
+    assert_eq!(result.0, "ok".to_string());
+    assert_eq!(
+        result.1,
+        ParsedObject::List(vec![
+            ParsedObject::Char(' '),
+            ParsedObject::Char('\t'),
+            ParsedObject::Char('\n'),
+            ParsedObject::Char(' '),
+        ])
+    );
+}
