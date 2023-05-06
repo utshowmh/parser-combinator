@@ -1,3 +1,5 @@
+mod tests;
+
 use core::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +29,20 @@ impl fmt::Display for ParserError {
 
 pub type ParseResult = Result<(String, ParsedObject), ParserError>;
 
+pub fn any_of(parsers: Vec<impl Fn(String) -> ParseResult>) -> impl Fn(String) -> ParseResult {
+    move |source: String| {
+        for parser in &parsers {
+            match parser(source.clone()) {
+                Ok(parsed_result) => return Ok(parsed_result),
+                Err(_) => continue,
+            }
+        }
+        Err(ParserError::Unknown(
+            "could not parse anything from 'any_of'".to_string(),
+        ))
+    }
+}
+
 pub fn parse_char(target_char: char) -> impl Fn(String) -> ParseResult {
     move |source: String| match source.chars().nth(0) {
         Some(char) => match target_char == char {
@@ -39,25 +55,4 @@ pub fn parse_char(target_char: char) -> impl Fn(String) -> ParseResult {
         },
         None => ParseResult::Err(ParserError::Unexpected(target_char.to_string(), source, 0)),
     }
-}
-
-#[test]
-fn test_parse_char() {
-    let parser = parse_char('b');
-    let result = parser("bad".to_string()).unwrap();
-    assert_eq!(result.0, "ad".to_string());
-    assert_eq!(result.1, ParsedObject::Char('b'));
-
-    let parser = parse_char('a');
-    let result = parser("a".to_string()).unwrap();
-    assert_eq!(result.0, "".to_string());
-    assert_eq!(result.1, ParsedObject::Char('a'));
-
-    let parser = parse_char('d');
-    let result = parser("bad".to_string());
-    assert!(result.is_err());
-
-    let parser = parse_char('d');
-    let result = parser("".to_string());
-    assert!(result.is_err());
 }
