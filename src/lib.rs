@@ -29,18 +29,21 @@ impl fmt::Display for ParserError {
 
 pub type ParseResult = Result<(String, ParsedObject), ParserError>;
 
-pub fn parse_whitespace() -> impl Fn(String) -> ParseResult {
-    move |source: String| {
+pub type Parser = Box<dyn Fn(String) -> ParseResult>;
+
+pub fn parse_whitespace() -> Parser {
+    let parser = move |source: String| {
         let space = parse_char(' ');
         let tab = parse_char('\t');
         let new_line = parse_char('\n');
-        let whitespace = any_of(vec![space, tab, new_line]);
+        let whitespace = parse_any_of(vec![space, tab, new_line]);
         whitespace(source)
-    }
+    };
+    Box::new(parser)
 }
 
-pub fn any_of(parsers: Vec<impl Fn(String) -> ParseResult>) -> impl Fn(String) -> ParseResult {
-    move |source: String| {
+pub fn parse_any_of(parsers: Vec<Parser>) -> Parser {
+    let parser = move |source: String| {
         for parser in &parsers {
             match parser(source.clone()) {
                 Ok(parsed_result) => return Ok(parsed_result),
@@ -50,11 +53,12 @@ pub fn any_of(parsers: Vec<impl Fn(String) -> ParseResult>) -> impl Fn(String) -
         Err(ParserError::Unknown(
             "could not parse anything from <any_of>".to_string(),
         ))
-    }
+    };
+    Box::new(parser)
 }
 
-pub fn parse_char(target_char: char) -> impl Fn(String) -> ParseResult {
-    move |source: String| match source.chars().nth(0) {
+pub fn parse_char(target_char: char) -> Parser {
+    let parser = move |source: String| match source.chars().nth(0) {
         Some(char) => match target_char == char {
             true => ParseResult::Ok((source[1..].to_string(), ParsedObject::Char(char))),
             false => ParseResult::Err(ParserError::Unexpected(
@@ -64,5 +68,6 @@ pub fn parse_char(target_char: char) -> impl Fn(String) -> ParseResult {
             )),
         },
         None => ParseResult::Err(ParserError::Unexpected(target_char.to_string(), source, 0)),
-    }
+    };
+    Box::new(parser)
 }
